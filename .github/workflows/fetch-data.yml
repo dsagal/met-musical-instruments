@@ -1,0 +1,49 @@
+name: Fetch instrument data
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+  # schedule:
+  #   - cron: '0 0 * * 0'  # Every Sunday at midnight UTC
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch data from Grist
+        id: fetch
+        run: |
+          if curl -sf 'https://public.getgrist.com/api/docs/tbQfT7UWrEYF/tables/Met_instruments/records' -o data.json; then
+            if git diff --quiet data.json; then
+              echo "status=no changes" >> "$GITHUB_OUTPUT"
+            else
+              echo "status=updated" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "status=error" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Commit and push if changed
+        if: steps.fetch.outputs.status == 'updated'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "Update instrument data"
+          git push
+
+      - name: Report sync status to Grist
+        if: always()
+        env:
+          GRIST_API_KEY: ${{ secrets.GRIST_API_KEY }}
+        run: |
+          now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          status="${{ steps.fetch.outputs.status || 'error' }}"
+          curl -sf -X POST \
+            "https://public.getgrist.com/api/docs/tbQfT7UWrEYF/tables/Sync_Log/records" \
+            -H "Authorization: Bearer $GRIST_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"records\":[{\"fields\":{\"Status\":\"$status\",\"Timestamp\":\"$now\"}}]}"
