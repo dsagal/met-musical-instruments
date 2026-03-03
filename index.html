@@ -11,52 +11,62 @@
 </head>
 <body>
 
+<div id="app">
+
 <header>
-  <div class="header-title">The Met · Musical Instruments</div>
-  <div class="header-meta"><span id="record-count">—</span> instruments</div>
+  <div class="header-title">The Met &middot; Musical Instruments</div>
+  <div class="header-meta"><span class="count">{{ filtered.length.toLocaleString() }}</span> instruments</div>
 </header>
 
 <div class="hero">
-  <div class="hero-eyebrow">The Metropolitan Museum of Art · Open Access Collection</div>
+  <div class="hero-eyebrow">The Metropolitan Museum of Art &middot; Open Access Collection</div>
   <h1>Five Thousand Years of <em>Musical Instruments</em></h1>
-  <p>From ancient bone flutes to Stradivari violins — every instrument in the Met's collection, open to the world under CC0.</p>
+  <p>From ancient bone flutes to Stradivari violins &mdash; every instrument in the Met's collection, open to the world under CC0.</p>
 </div>
 
 <div class="filters-bar">
   <div class="filters-inner">
     <div class="search-wrap">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="search" id="search" placeholder="Search instruments…" autocomplete="off">
+      <input type="search" v-model="searchRaw" placeholder="Search instruments…" autocomplete="off">
     </div>
 
-    <span class="filter-label">Culture</span>
-    <select id="filter-culture">
-      <option value="">All cultures</option>
-    </select>
+    <div class="filter-wrap">
+      <select v-model="culture">
+        <option value="">All cultures</option>
+        <option v-for="c in cultures" :value="c">{{ c }}</option>
+      </select>
+      <button v-if="culture" class="filter-clear" @click="culture = ''">&times;</button>
+    </div>
 
-    <span class="filter-label">Type</span>
-    <select id="filter-type">
-      <option value="">All types</option>
-    </select>
+    <div class="filter-wrap">
+      <select v-model="type">
+        <option value="">All types</option>
+        <option v-for="t in types" :value="t">{{ t }}</option>
+      </select>
+      <button v-if="type" class="filter-clear" @click="type = ''">&times;</button>
+    </div>
 
-    <span class="filter-label">Era</span>
-    <select id="filter-era">
-      <option value="">All eras</option>
-      <option value="-3000,-1">Ancient (before CE)</option>
-      <option value="1,1400">Medieval (1–1400)</option>
-      <option value="1400,1600">Renaissance (1400–1600)</option>
-      <option value="1600,1800">Baroque & Classical (1600–1800)</option>
-      <option value="1800,1900">19th Century</option>
-      <option value="1900,2000">20th Century</option>
-    </select>
+    <div class="filter-wrap">
+      <select v-model="era">
+        <option value="">All eras</option>
+        <option value="-3000,-1">Ancient (before CE)</option>
+        <option value="1,1400">Medieval (1–1400)</option>
+        <option value="1400,1600">Renaissance (1400–1600)</option>
+        <option value="1600,1800">Baroque &amp; Classical (1600–1800)</option>
+        <option value="1800,1900">19th Century</option>
+        <option value="1900,2000">20th Century</option>
+      </select>
+      <button v-if="era" class="filter-clear" @click="era = ''">&times;</button>
+    </div>
 
-    <button class="btn-clear" id="btn-clear">Clear filters</button>
+    <button class="btn-clear" @click="clearAll" v-if="hasAnyFilter">Clear filters</button>
 
     <div class="view-toggle">
-      <button class="view-btn active" id="btn-grid" title="Grid view">
+      <button class="view-btn" :class="{active: view === 'grid'}" @click="view = 'grid'" title="Grid view">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       </button>
-      <button class="view-btn" id="btn-list" title="List view">
+      <button class="view-btn" :class="{active: view === 'list'}" @click="view = 'list'" title="List view">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       </button>
     </div>
@@ -64,35 +74,83 @@
 </div>
 
 <main>
-  <div id="grid">
-    <div class="state-message">
+  <div id="grid" :class="{'list-view': view === 'list'}">
+
+    <div v-if="loading" class="state-message">
       <div class="spinner"></div>
       Loading the collection…
     </div>
+    <div v-else-if="error" class="state-message">
+      <span class="big">&times;</span>Failed to load collection. Please try again.
+    </div>
+    <div v-else-if="filtered.length === 0" class="state-message">
+      <span class="big">&empty;</span>No instruments match your filters.
+    </div>
+
+    <div v-else v-for="(r, i) in filtered" :key="r.objectID || i" class="card"
+         :style="{'animation-delay': Math.min(i % 20, 19) * 20 + 'ms'}"
+         @click="openModal(i)">
+      <div class="card-img">
+        <img v-if="r.primaryImageSmall || r.primaryImage"
+             :src="r.primaryImageSmall || r.primaryImage"
+             :alt="r.title" loading="lazy">
+        <div v-else class="no-img">&#9833;</div>
+      </div>
+      <div class="card-body">
+        <div class="card-name">{{ r.title || r.objectName || 'Untitled' }}</div>
+        <div class="card-culture">{{ r.culture || r.country || '' }}</div>
+        <div class="card-meta">{{ dateStr(r) }}{{ r.medium ? ' · ' + truncate(r.medium, 40) : '' }}</div>
+        <div v-if="family(r)" class="card-classification">{{ family(r) }}</div>
+      </div>
+    </div>
+
   </div>
 </main>
 
 <!-- Modal -->
-<div id="modal-overlay">
+<div id="modal-overlay" v-if="modalItem" @click.self="closeModal">
+  <button class="modal-nav modal-prev" v-if="modalIndex > 0" @click="modalIndex--">&lsaquo;</button>
+
   <div id="modal">
-    <button class="modal-close" id="modal-close">✕</button>
+    <button class="modal-close" @click="closeModal">&times;</button>
     <div class="modal-img">
-      <img id="modal-main-img" src="" alt="">
+      <img :src="modalImgSrc" :alt="modalItem.title || ''">
     </div>
     <div class="modal-content">
-      <div class="modal-eyebrow" id="modal-eyebrow"></div>
-      <div class="modal-title" id="modal-title"></div>
-      <div class="modal-fields" id="modal-fields"></div>
-      <div class="thumb-strip" id="modal-thumbs"></div>
+      <div class="modal-eyebrow">{{ [modalItem.culture || modalItem.country, modalItem.objectDate].filter(Boolean).join(' · ') }}</div>
+      <div class="modal-title">{{ modalItem.title || modalItem.objectName || 'Untitled' }}</div>
+      <div class="modal-fields">
+        <div class="field-row" v-for="[k, v] in modalFields" :key="k">
+          <span class="field-key">{{ k }}</span>
+          <span class="field-val">{{ v }}</span>
+        </div>
+        <template v-if="modalItem.objectURL">
+          <div class="modal-divider"></div>
+          <div class="field-row">
+            <span class="field-key">View at</span>
+            <span class="field-val"><a :href="modalItem.objectURL" target="_blank">metmuseum.org &rarr;</a></span>
+          </div>
+        </template>
+      </div>
+      <div v-if="modalThumbs.length > 1" class="thumb-strip">
+        <img v-for="(src, i) in modalThumbs" :key="i"
+             :src="src" :class="{active: modalThumbIdx === i}"
+             @click="modalThumbIdx = i" alt="">
+      </div>
     </div>
   </div>
+
+  <button class="modal-nav modal-next" v-if="modalIndex < filtered.length - 1" @click="modalIndex++">&rsaquo;</button>
 </div>
 
 <footer>
-  Data and images from <a href="https://www.metmuseum.org/about-the-met/policies-and-documents/open-access" target="_blank">The Metropolitan Museum of Art Open Access</a> · CC0 1.0 Universal<br>
+  Data and images from <a href="https://www.metmuseum.org/about-the-met/policies-and-documents/open-access" target="_blank">The Metropolitan Museum of Art Open Access</a> &middot; CC0 1.0 Universal<br>
   Powered by <a href="https://www.getgrist.com" target="_blank">Grist</a>
 </footer>
 
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
