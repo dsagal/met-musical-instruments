@@ -17,8 +17,10 @@ jobs:
 
       - name: Fetch data from Grist
         id: fetch
+        env:
+          GRIST_DOC_URL: ${{ vars.GRIST_DOC_URL }}
         run: |
-          if curl -sf 'https://public.getgrist.com/api/docs/tbQfT7UWrEYF/tables/Met_instruments/records' -o data.json; then
+          if curl -sf "$GRIST_DOC_URL/tables/MET_Instruments/records" -o data.json; then
             if git diff --quiet data.json; then
               echo "status=no changes" >> "$GITHUB_OUTPUT"
             else
@@ -41,12 +43,13 @@ jobs:
       - name: Report sync status to Grist
         if: always()
         env:
+          GRIST_DOC_URL: ${{ vars.GRIST_DOC_URL }}
           GRIST_API_KEY: ${{ secrets.GRIST_API_KEY }}
         run: |
           now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           status="${{ steps.fetch.outputs.status || 'error' }}"
           curl -sf -X POST \
-            "https://public.getgrist.com/api/docs/tbQfT7UWrEYF/tables/Sync_Log/records" \
+            "$GRIST_DOC_URL/tables/Sync_Log/records" \
             -H "Authorization: Bearer $GRIST_API_KEY" \
             -H "Content-Type: application/json" \
             -d "{\"records\":[{\"fields\":{\"Status\":\"$status\",\"Timestamp\":\"$now\"}}]}"

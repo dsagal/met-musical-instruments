@@ -177,7 +177,6 @@ select option { background: #201d19; }
   background: none;
   border: none;
   color: var(--muted);
-  cursor: pointer;
   font-size: 15px;
   width: 22px;
   height: 22px;
@@ -186,11 +185,19 @@ select option { background: #201d19; }
   justify-content: center;
   border-radius: 50%;
   margin-left: 2px;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s, opacity 0.15s;
   flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.filter-clear:hover {
+.filter-clear.active {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.filter-clear.active:hover {
   color: var(--cream);
   background: rgba(255,255,255,0.08);
 }

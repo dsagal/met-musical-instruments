@@ -36,7 +36,7 @@
         <option value="">All cultures</option>
         <option v-for="c in cultures" :value="c">{{ c }}</option>
       </select>
-      <button v-if="culture" class="filter-clear" @click="culture = ''">&times;</button>
+      <button class="filter-clear" :class="{active: culture}" @click="culture = ''">&times;</button>
     </div>
 
     <div class="filter-wrap">
@@ -44,7 +44,7 @@
         <option value="">All types</option>
         <option v-for="t in types" :value="t">{{ t }}</option>
       </select>
-      <button v-if="type" class="filter-clear" @click="type = ''">&times;</button>
+      <button class="filter-clear" :class="{active: type}" @click="type = ''">&times;</button>
     </div>
 
     <div class="filter-wrap">
@@ -57,7 +57,7 @@
         <option value="1800,1900">19th Century</option>
         <option value="1900,2000">20th Century</option>
       </select>
-      <button v-if="era" class="filter-clear" @click="era = ''">&times;</button>
+      <button class="filter-clear" :class="{active: era}" @click="era = ''">&times;</button>
     </div>
 
     <button class="btn-clear" @click="clearAll" v-if="hasAnyFilter">Clear filters</button>
