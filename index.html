@@ -60,7 +60,7 @@
       <button class="filter-clear" :class="{active: era}" @click="era = ''">&times;</button>
     </div>
 
-    <button class="btn-clear" @click="clearAll" v-if="hasAnyFilter">Clear filters</button>
+    <button class="btn-clear" :class="{active: hasAnyFilter}" @click="clearAll">Clear filters</button>
 
     <div class="view-toggle">
       <button class="view-btn" :class="{active: view === 'grid'}" @click="view = 'grid'" title="Grid view">

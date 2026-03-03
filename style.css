@@ -207,15 +207,22 @@ select option { background: #201d19; }
   color: var(--muted);
   background: none;
   border: none;
-  cursor: pointer;
   padding: 0.5rem 0.75rem;
   border-radius: 4px;
   letter-spacing: 0.04em;
-  transition: color 0.2s;
+  transition: color 0.2s, opacity 0.15s;
   white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.btn-clear:hover { color: var(--gold); }
+.btn-clear.active {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.btn-clear.active:hover { color: var(--gold); }
 
 /* ── View toggle ── */
 .view-toggle {

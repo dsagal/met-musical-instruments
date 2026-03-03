@@ -25,8 +25,15 @@ createApp({
     });
 
     // ── Derived data ───────────────────────────────────────────
+    // Cultures is a Grist ChoiceList: ["L", "val1", "val2", ...]. Extract values.
+    function getCultures(r) {
+      const cl = r.Cultures;
+      if (Array.isArray(cl) && cl[0] === 'L') return cl.slice(1);
+      return [];
+    }
+
     const cultures = computed(() =>
-      [...new Set(allRecords.value.map(r => r.culture).filter(Boolean))].sort()
+      [...new Set(allRecords.value.flatMap(getCultures))].sort()
     );
 
     const types = computed(() =>
@@ -41,7 +48,7 @@ createApp({
       const t = type.value;
       const e = era.value;
       return allRecords.value.filter(r => {
-        if (c && r.culture !== c) return false;
+        if (c && !getCultures(r).includes(c)) return false;
         if (t && !(r.classification || '').startsWith(t)) return false;
         if (e) {
           const [from, to] = e.split(',').map(Number);
